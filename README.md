@@ -60,4 +60,5 @@ Toda rede em uma VPC customizada
 - Logs e métricas monitorados pelo CloudWatch
 
 
-![Alt text](image-1.png)
+![image](https://github.com/user-attachments/assets/fd056267-afcc-40b7-b297-fe707b0b9064)
+
