@@ -1,64 +1,106 @@
-# Seminário
+# 🚀 Sobre o Projeto
+Este projeto consiste na criação de uma arquitetura em nuvem escalável e resiliente utilizando Amazon Web Services (AWS), com foco na análise automatizada de imagens por meio do Amazon Rekognition.
 
+A solução é composta por uma aplicação web, baseada em um frontend moderno, backend serverless e uma infraestrutura orientada a serviços gerenciados, visando:
 
-Requisito	Como será atendido
-2 serviços de computação	*EC2 + ECS (Fargate)*
-2 serviços de banco de dados	RDS (MySQL/PostgreSQL) + DynamoDB
-VPC customizada	Criar sua própria VPC com subnets públicas e privadas
-Escalável	Auto Scaling + Fargate + ELB
+## ✅ Alta disponibilidade.
+## ✅ Escalabilidade automática.
+## ✅ Desacoplamento de componentes.
+## ✅ Minimização do gerenciamento de infraestrutura.
 
- Requisitos eletivos:
-Serviço eletivo	Como será usado
-- S3	Armazenar imagens e arquivos estáticos
-- Load Balancer e Auto Scaling	Balancear tráfego entre containers ou EC2
-- Fargate	Executar containers Docker serverless
-- API Gateway	Expõe sua API de forma gerenciável
-- IA (Amazon Rekognition)	Ex: análise de imagens enviadas no S3
+# 🏗️ Arquitetura e Fluxo
+Usuário acessa o frontend hospedado no Amazon S3 via CloudFront (opcional).
 
-##  Visão Geral do Projeto
-### Aplicação Web de análise de imagem:
+O frontend envia requisições para o Amazon API Gateway.
 
-- Frontend (React/Angular hospedado no S3)
+O API Gateway redireciona as requisições para o backend containerizado rodando no Amazon ECS com Fargate.
 
-- Backend em container (Docker) rodando no ECS com Fargate
+O backend executa as seguintes ações:
 
-- API exposta pelo API Gateway
+Conecta-se ao Amazon RDS para persistência de dados relacionais.
 
-- Banco de dados relacional no RDS
+Utiliza Amazon DynamoDB para armazenamento rápido e flexível de dados (cache, sessões, históricos).
 
-- Banco NoSQL no DynamoDB para cache/usuários
+Realiza operações de upload/download com o Amazon S3 para armazenar imagens.
 
-- Armazenamento de imagens no S3
+Opcionalmente invoca o Amazon Rekognition para análise automatizada das imagens.
 
-- Quando imagem é enviada, uma função (opcional: Lambda) aciona o Amazon Rekognition para detectar faces ou objetos
+O Elastic Load Balancer (ELB) distribui o tráfego entre containers conforme a demanda.
 
-Logs no CloudWatch
+O Auto Scaling ajusta automaticamente o número de containers, garantindo escalabilidade e resiliência.
 
-Toda rede em uma VPC customizada
+Logs e métricas são enviados para o Amazon CloudWatch, possibilitando monitoramento contínuo.
 
-##  Arquitetura (texto descritivo)
-### Usuário acessa o frontend via CloudFront ou diretamente no S3
+# 🧰 Tecnologias e Serviços AWS
+Categoria	Serviço AWS Utilizado
+Computação	Amazon EC2, Amazon ECS (Fargate)
+Bancos de Dados	Amazon RDS (MySQL/PostgreSQL), Amazon DynamoDB
+Armazenamento	Amazon S3
+Balanceamento e Escalabilidade	Elastic Load Balancer (ELB), Auto Scaling
+API e Integração	Amazon API Gateway
+Análise de Imagem	Amazon Rekognition
+Rede e Segurança	Amazon VPC (customizada com subnets públicas e privadas)
+Monitoramento	Amazon CloudWatch
+Entrega de Conteúdo	AWS CloudFront (opcional)
 
-- O frontend envia requisições para o API Gateway
+# ✅ Requisitos Atendidos
+Requisito	Implementação
+2 serviços de computação	EC2 e ECS (Fargate) executando o backend de forma resiliente.
+2 serviços de banco de dados	RDS para dados relacionais; DynamoDB para dados não-relacionais e de cache.
+VPC customizada	VPC própria com subnets públicas (frontend, ELB) e privadas (banco, backend).
+Escalabilidade	Auto Scaling + Fargate + ELB garantem ajuste automático conforme demanda.
 
-- O API Gateway redireciona para o backend rodando no ECS com Fargate
+# ⭐ Requisitos Eletivos
+Serviço Eletivo	Utilização
+Amazon S3	Armazenamento de imagens e arquivos estáticos.
+Load Balancer + Auto Scaling	Balanceamento de tráfego entre containers e ajuste automático da capacidade.
+AWS Fargate	Execução de containers Docker de forma serverless.
+Amazon API Gateway	Exposição pública e gerenciável da API backend.
+Amazon Rekognition	Análise automatizada de imagens enviadas (detecção de faces, objetos, textos).
 
-- O backend interage com:
+# 🔐 Segurança e Boas Práticas
+Utilização de IAM Roles com políticas de privilégios mínimos para cada serviço.
 
-- RDS para dados relacionais (produtos, perfis etc.)
+Subnets privadas para recursos críticos como RDS e ECS tasks.
 
-- DynamoDB para dados rápidos ou históricos
+Security Groups e Network ACLs configuradas para controle de tráfego.
 
-- S3 para salvar imagens
+Criptografia de dados em repouso no S3 e RDS.
 
-- Amazon Rekognition para analisar imagens
+Utilização de HTTPS no API Gateway para comunicação segura.
 
-- O Load Balancer distribui o tráfego entre containers
+# 📊 Monitoramento e Observabilidade
+Logs centralizados no Amazon CloudWatch Logs.
 
-- A Auto Scaling cria mais containers conforme a demanda
+Alarmes e métricas configurados no CloudWatch Metrics para monitoramento de saúde e desempenho.
 
-- Logs e métricas monitorados pelo CloudWatch
+Possibilidade de configurar AWS X-Ray para rastreamento de requisições end-to-end.
 
+# ⚙️ Implantação e Dependências
+Pré-requisitos:
+Conta AWS com permissões suficientes.
+
+AWS CLI configurado.
+
+Docker instalado.
+
+Ferramentas de infraestrutura como código recomendadas: AWS CDK, Terraform ou CloudFormation.
+
+Etapas:
+Criar a VPC customizada com subnets públicas e privadas.
+
+Configurar o S3 para hospedagem do frontend.
+
+Deploy da aplicação backend no ECS com Fargate.
+
+Configurar API Gateway para expor a API.
+
+Criar e configurar RDS e DynamoDB.
+
+Integrar com Amazon Rekognition.
+
+Configurar Load Balancer e Auto Scaling.
+
+Habilitar monitoramento com CloudWatch.
 
 ![image](https://github.com/user-attachments/assets/fd056267-afcc-40b7-b297-fe707b0b9064)
-
