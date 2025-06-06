@@ -1,7 +1,9 @@
 🚀 Sobre o Projeto
+
 Este projeto tem como objetivo a criação de uma arquitetura escalável, resiliente e de alta disponibilidade na Amazon Web Services (AWS), voltada para a análise automatizada de imagens utilizando o serviço Amazon Rekognition.
 
 🔧 Características Principais
+
 ✅ Alta disponibilidade
 
 ✅ Escalabilidade automática
