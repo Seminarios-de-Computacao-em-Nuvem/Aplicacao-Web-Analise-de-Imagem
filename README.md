@@ -194,3 +194,11 @@ def lambda_handler(event, context):
 | Monitoramento e Notificações | Amazon CloudWatch, Amazon SNS                                 |
 
 ![image](Diagram.png)
+
+### Participantes:
+
+## Guilherme Camargo
+## Rafael Rodrigues
+## Gabriel Eliezer
+## Bruno Sakamoto
+## Daniel Marques
