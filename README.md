@@ -183,13 +183,14 @@ def lambda_handler(event, context):
 # 🧰 Tecnologias e Serviços AWS
 
 | Categoria                     | Serviço AWS Utilizado                                          |
-|--------------------------------|---------------------------------------------------------------|
-| Computação                    | Amazon EC2, Amazon Lambda                                     |
-| Bancos de Dados               | Amazon RDS (MySQL), Amazon DynamoDB                           |
-| Armazenamento                 | Amazon S3                                                     |
+|------------------------------|---------------------------------------------------------------|
+| Computação                   | Amazon EC2, Amazon Lambda                                     |
+| Bancos de Dados              | Amazon RDS (MySQL), Amazon DynamoDB                           |
+| Armazenamento                | Amazon S3                                                     |
 | Balanceamento e Escalabilidade| Elastic Load Balancer (ELB), Auto Scaling                     |
-| API e Integração              | Amazon API Gateway                                            |
-| Análise de Imagem             | Amazon Rekognition                                            |
-| Rede e Segurança              | Amazon VPC (customizada com subnets públicas e privadas)      |
+| API e Integração             | Amazon API Gateway                                            |
+| Análise de Imagem            | Amazon Rekognition                                            |
+| Rede e Segurança             | Amazon VPC (customizada com subnets públicas e privadas)      |
+| Monitoramento e Notificações | Amazon CloudWatch, Amazon SNS                                 |
 
 ![image](Diagram.png)
