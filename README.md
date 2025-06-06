@@ -1,39 +1,68 @@
-# 🚀 Sobre o Projeto
-Este projeto consiste na criação de uma arquitetura em nuvem escalável e resiliente utilizando Amazon Web Services (AWS), com foco na análise automatizada de imagens por meio do Amazon Rekognition.
+🚀 Sobre o Projeto
+Este projeto tem como objetivo a criação de uma arquitetura escalável, resiliente e de alta disponibilidade na Amazon Web Services (AWS), voltada para a análise automatizada de imagens utilizando o serviço Amazon Rekognition.
 
-## ✅ Alta disponibilidade.
-## ✅ Escalabilidade automática.
-## ✅ Desacoplamento de componentes.
-## ✅ Minimização do gerenciamento de infraestrutura.
+🔧 Características Principais
+✅ Alta disponibilidade
 
-# 🏗️ Arquitetura e Fluxo
-- Acesso do frontend localizado no Amazon EC2.
+✅ Escalabilidade automática
 
-- Monitoramento das instâncias pelo CloudWatch
+✅ Desacoplamento de componentes
 
-- Notificação pelo SNS
+✅ Baixa necessidade de gerenciamento de infraestrutura
 
-- Requisições do frontend processadas pelo API Gateway.
+🏗️ Arquitetura e Fluxo da Solução
+A seguir, o fluxo detalhado da arquitetura implementada:
 
-- O API Gateway redireciona as requisições para o Lambda.
+Frontend (Amazon EC2)
 
-- A função Lambda executa as seguintes ações:
+O frontend é hospedado em uma instância do Amazon EC2.
 
-    Conexão ao bucket criado no S3
+O usuário envia uma imagem via interface web, que é convertida para Base64 no navegador antes de ser enviada.
 
-    Conecta-se aos bancos DynamoDB e RDS
+API Gateway
 
-    Ativa a utilização do Rekognition
+Recebe a requisição HTTP POST contendo a imagem em Base64.
 
-    Recebe as imagens
+É necessário liberar o IP da instância EC2 no API Gateway para permitir o tráfego.
 
-    Realiza operações de upload/download para o Amazon S3 das imagens recebidas.
+A escolha por Base64 se deu por compatibilidade e melhor processamento no API Gateway, mesmo com o aumento de ~33% no tamanho da imagem.
 
-    Gera a criação de Labels de imagens por meio do Rekognition
+AWS Lambda
 
-    Salva as labels geradas em ambos os bancos de dados
+Decodifica o conteúdo em Base64 e realiza o upload da imagem para um bucket no Amazon S3.
 
-    Retorna no Frontend as labels geradas
+Aciona o serviço Amazon Rekognition para processar a imagem e identificar elementos (labels).
+
+Conecta-se aos bancos Amazon DynamoDB e Amazon RDS para armazenar os resultados.
+
+Retorna as labels geradas ao frontend para exibição.
+
+Amazon S3
+
+Armazena as imagens recebidas para análise e histórico.
+
+Amazon Rekognition
+
+Realiza a detecção de objetos, cenas e conceitos presentes na imagem, retornando os resultados em forma de labels.
+
+Armazenamento de Dados
+
+Amazon DynamoDB: Armazena os metadados e resultados de forma rápida e escalável.
+
+Amazon RDS: Utilizado como repositório relacional para persistência adicional e integração com outras ferramentas analíticas.
+
+Monitoramento e Notificações
+
+Amazon CloudWatch: Monitora métricas das instâncias EC2 e funções Lambda.
+
+Amazon SNS: Utilizado para envio de notificações sobre eventos relevantes do sistema.
+
+📌 Observações Técnicas
+A conversão para Base64 permite compatibilidade com o API Gateway, apesar do aumento no tamanho da carga útil.
+
+A arquitetura é desacoplada e orientada a eventos, com foco em serverless para reduzir custos e aumentar a escalabilidade.
+
+O uso conjunto de bancos NoSQL (DynamoDB) e relacional (RDS) permite flexibilidade e robustez na manipulação dos dados.
 
 # ⚡ Função Lambda
 ```python
