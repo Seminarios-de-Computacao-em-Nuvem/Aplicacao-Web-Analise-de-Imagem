@@ -1,106 +1,195 @@
 # 🚀 Sobre o Projeto
 Este projeto consiste na criação de uma arquitetura em nuvem escalável e resiliente utilizando Amazon Web Services (AWS), com foco na análise automatizada de imagens por meio do Amazon Rekognition.
 
-A solução é composta por uma aplicação web, baseada em um frontend moderno, backend serverless e uma infraestrutura orientada a serviços gerenciados, visando:
-
 ## ✅ Alta disponibilidade.
 ## ✅ Escalabilidade automática.
 ## ✅ Desacoplamento de componentes.
 ## ✅ Minimização do gerenciamento de infraestrutura.
 
 # 🏗️ Arquitetura e Fluxo
-Usuário acessa o frontend hospedado no Amazon S3 via CloudFront (opcional).
+- Acesso do frontend localizado no Amazon EC2.
 
-O frontend envia requisições para o Amazon API Gateway.
+- Monitoramento das instâncias pelo CloudWatch
 
-O API Gateway redireciona as requisições para o backend containerizado rodando no Amazon ECS com Fargate.
+- Notificação pelo SNS
 
-O backend executa as seguintes ações:
+- Requisições do frontend processadas pelo API Gateway.
 
-Conecta-se ao Amazon RDS para persistência de dados relacionais.
+- O API Gateway redireciona as requisições para o Lambda.
 
-Utiliza Amazon DynamoDB para armazenamento rápido e flexível de dados (cache, sessões, históricos).
+- A função Lambda executa as seguintes ações:
 
-Realiza operações de upload/download com o Amazon S3 para armazenar imagens.
+    Conexão ao bucket criado no S3
 
-Opcionalmente invoca o Amazon Rekognition para análise automatizada das imagens.
+    Conecta-se aos bancos DynamoDB e RDS
 
-O Elastic Load Balancer (ELB) distribui o tráfego entre containers conforme a demanda.
+    Ativa a utilização do Rekognition
 
-O Auto Scaling ajusta automaticamente o número de containers, garantindo escalabilidade e resiliência.
+    Recebe as imagens
 
-Logs e métricas são enviados para o Amazon CloudWatch, possibilitando monitoramento contínuo.
+    Realiza operações de upload/download para o Amazon S3 das imagens recebidas.
 
+    Gera a criação de Labels de imagens por meio do Rekognition
+
+    Salva as labels geradas em ambos os bancos de dados
+
+    Retorna no Frontend as labels geradas
+
+# ⚡ Função Lambda
+```python
+import json
+import boto3
+import uuid
+import base64
+import mysql.connector
+from botocore.exceptions import ClientError
+
+# Inicializa clientes AWS
+s3 = boto3.client('s3')
+rekog = boto3.client('rekognition')
+dynamodb = boto3.resource('dynamodb')
+
+# Nomes da tabela e do bucket
+TABLE_NAME = 'Lab-DynamoDB'
+BUCKET_NAME = 'lab-arquitetura-s3-guilherme-camargo-2025'
+
+# Função para conectar ao MySQL
+def get_db_connection():
+    try:
+        return mysql.connector.connect(
+            user='admin',
+            password='senai123',
+            host='database-mysql.cjziletdu6o3.us-east-1.rds.amazonaws.com',
+            database='images'
+        )
+    except Exception as e:
+        print(f"Database connection failed: {str(e)}")
+        return None
+
+def lambda_handler(event, context):
+    try:
+        # Trata entrada vinda via API Gateway
+        body = json.loads(event['body']) if 'body' in event else event
+
+        image_data = body.get('image_data')
+        filename = body.get('filename')
+
+        # Valida se a imagem foi enviada
+        if not image_data:
+            return {
+                'statusCode': 400,
+                'body': json.dumps({'error': 'Missing image_data'}, indent=4)
+            }
+
+        # Decodifica a imagem de base64
+        image_bytes = base64.b64decode(image_data)
+
+        # Faz upload da imagem para o S3
+        s3.put_object(
+            Bucket=BUCKET_NAME,
+            Key=filename,
+            Body=image_bytes,
+            ContentType='image/jpeg'
+        )
+
+        # Detecta labels na imagem usando Rekognition
+        response = rekog.detect_labels(
+            Image={'S3Object': {'Bucket': BUCKET_NAME, 'Name': filename}},
+            MaxLabels=10,
+            MinConfidence=90
+        )
+        labels = [label['Name'] for label in response['Labels']]
+
+        # Armazena metadados no DynamoDB
+        table = dynamodb.Table(TABLE_NAME)
+        item = {
+            'id': str(uuid.uuid4()),
+            's3_key': filename,
+            'labels': labels
+        }
+        table.put_item(Item=item)
+
+        # Conecta ao banco MySQL
+        cnx = get_db_connection()
+        mysql_data = []
+        if cnx:
+            cursor = cnx.cursor()
+
+            # Cria a tabela se não existir
+            cursor.execute('SHOW TABLES LIKE "images"')
+            if not cursor.fetchone():
+                cursor.execute("""
+                    CREATE TABLE images (
+                        id VARCHAR(36) PRIMARY KEY, 
+                        s3_key VARCHAR(255), 
+                        labels TEXT
+                    )
+                """)
+                cnx.commit()
+
+            # Evita inserir imagens duplicadas
+            cursor.execute("SELECT id FROM images WHERE s3_key = %s", (filename,))
+            existing = cursor.fetchone()
+
+            if not existing:
+                # Insere dados no MySQL
+                sql = "INSERT INTO images (id, s3_key, labels) VALUES (%s, %s, %s)"
+                cursor.execute(sql, (item['id'], item['s3_key'], json.dumps(item['labels'])))
+                cnx.commit()
+
+            # Recupera todos os registros da tabela
+            cursor.execute("SELECT id, s3_key, labels FROM images")
+            rows = cursor.fetchall()
+
+            for row in rows:
+                mysql_data.append({
+                    'id': row[0],
+                    's3_key': row[1],
+                    'labels': json.loads(row[2])
+                })
+
+            cursor.close()
+            cnx.close()
+        else:
+            print("Falha ao conectar no MySQL.")
+
+        # Retorna resposta com sucesso
+        return {
+            'statusCode': 200,
+            'body': json.dumps({
+                'message': 'Imagem processada com sucesso',
+                'labels': labels,
+                's3_key': filename,
+                'mysql_table': mysql_data
+            }, indent=4)
+        }
+
+    # Tratamento de erros específicos da AWS
+    except ClientError as e:
+        print(e)
+        return {
+            'statusCode': 500,
+            'body': json.dumps({'error': str(e)}, indent=4)
+        }
+    # Tratamento de quaisquer outros erros
+    except Exception as ex:
+        print(ex)
+        return {
+            'statusCode': 500,
+            'body': json.dumps({'error': str(ex)}, indent=4)
+        }
+
+```
 # 🧰 Tecnologias e Serviços AWS
-Categoria	Serviço AWS Utilizado
-Computação	Amazon EC2, Amazon ECS (Fargate)
-Bancos de Dados	Amazon RDS (MySQL/PostgreSQL), Amazon DynamoDB
-Armazenamento	Amazon S3
-Balanceamento e Escalabilidade	Elastic Load Balancer (ELB), Auto Scaling
-API e Integração	Amazon API Gateway
-Análise de Imagem	Amazon Rekognition
-Rede e Segurança	Amazon VPC (customizada com subnets públicas e privadas)
-Monitoramento	Amazon CloudWatch
-Entrega de Conteúdo	AWS CloudFront (opcional)
 
-# ✅ Requisitos Atendidos
-Requisito	Implementação
-2 serviços de computação	EC2 e ECS (Fargate) executando o backend de forma resiliente.
-2 serviços de banco de dados	RDS para dados relacionais; DynamoDB para dados não-relacionais e de cache.
-VPC customizada	VPC própria com subnets públicas (frontend, ELB) e privadas (banco, backend).
-Escalabilidade	Auto Scaling + Fargate + ELB garantem ajuste automático conforme demanda.
+| Categoria                     | Serviço AWS Utilizado                                          |
+|--------------------------------|---------------------------------------------------------------|
+| Computação                    | Amazon EC2, Amazon Lambda                                     |
+| Bancos de Dados               | Amazon RDS (MySQL), Amazon DynamoDB                           |
+| Armazenamento                 | Amazon S3                                                     |
+| Balanceamento e Escalabilidade| Elastic Load Balancer (ELB), Auto Scaling                     |
+| API e Integração              | Amazon API Gateway                                            |
+| Análise de Imagem             | Amazon Rekognition                                            |
+| Rede e Segurança              | Amazon VPC (customizada com subnets públicas e privadas)      |
 
-# ⭐ Requisitos Eletivos
-Serviço Eletivo	Utilização
-Amazon S3	Armazenamento de imagens e arquivos estáticos.
-Load Balancer + Auto Scaling	Balanceamento de tráfego entre containers e ajuste automático da capacidade.
-AWS Fargate	Execução de containers Docker de forma serverless.
-Amazon API Gateway	Exposição pública e gerenciável da API backend.
-Amazon Rekognition	Análise automatizada de imagens enviadas (detecção de faces, objetos, textos).
-
-# 🔐 Segurança e Boas Práticas
-Utilização de IAM Roles com políticas de privilégios mínimos para cada serviço.
-
-Subnets privadas para recursos críticos como RDS e ECS tasks.
-
-Security Groups e Network ACLs configuradas para controle de tráfego.
-
-Criptografia de dados em repouso no S3 e RDS.
-
-Utilização de HTTPS no API Gateway para comunicação segura.
-
-# 📊 Monitoramento e Observabilidade
-Logs centralizados no Amazon CloudWatch Logs.
-
-Alarmes e métricas configurados no CloudWatch Metrics para monitoramento de saúde e desempenho.
-
-Possibilidade de configurar AWS X-Ray para rastreamento de requisições end-to-end.
-
-# ⚙️ Implantação e Dependências
-Pré-requisitos:
-Conta AWS com permissões suficientes.
-
-AWS CLI configurado.
-
-Docker instalado.
-
-Ferramentas de infraestrutura como código recomendadas: AWS CDK, Terraform ou CloudFormation.
-
-Etapas:
-Criar a VPC customizada com subnets públicas e privadas.
-
-Configurar o S3 para hospedagem do frontend.
-
-Deploy da aplicação backend no ECS com Fargate.
-
-Configurar API Gateway para expor a API.
-
-Criar e configurar RDS e DynamoDB.
-
-Integrar com Amazon Rekognition.
-
-Configurar Load Balancer e Auto Scaling.
-
-Habilitar monitoramento com CloudWatch.
-
-![image](https://github.com/user-attachments/assets/fd056267-afcc-40b7-b297-fe707b0b9064)
+![image](Diagram.png)
