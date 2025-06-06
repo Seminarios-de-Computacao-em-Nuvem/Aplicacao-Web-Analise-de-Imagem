@@ -13,58 +13,59 @@ Este projeto tem como objetivo a criação de uma arquitetura escalável, resili
 ✅ Baixa necessidade de gerenciamento de infraestrutura
 
 🏗️ Arquitetura e Fluxo da Solução
+
 A seguir, o fluxo detalhado da arquitetura implementada:
 
-Frontend (Amazon EC2)
+> Frontend (Amazon EC2)
 
-O frontend é hospedado em uma instância do Amazon EC2.
+> O frontend é hospedado em uma instância do Amazon EC2.
 
-O usuário envia uma imagem via interface web, que é convertida para Base64 no navegador antes de ser enviada.
+> O usuário envia uma imagem via interface web, que é convertida para Base64 no navegador antes de ser enviada.
 
-API Gateway
+> API Gateway
 
-Recebe a requisição HTTP POST contendo a imagem em Base64.
+> Recebe a requisição HTTP POST contendo a imagem em Base64.
 
-É necessário liberar o IP da instância EC2 no API Gateway para permitir o tráfego.
+> É necessário liberar o IP da instância EC2 no API Gateway para permitir o tráfego.
 
-A escolha por Base64 se deu por compatibilidade e melhor processamento no API Gateway, mesmo com o aumento de ~33% no tamanho da imagem.
+> A escolha por Base64 se deu por compatibilidade e melhor processamento no API Gateway, mesmo com o aumento de ~33% no tamanho da imagem.
 
 AWS Lambda
 
-Decodifica o conteúdo em Base64 e realiza o upload da imagem para um bucket no Amazon S3.
+> Decodifica o conteúdo em Base64 e realiza o upload da imagem para um bucket no Amazon S3.
 
-Aciona o serviço Amazon Rekognition para processar a imagem e identificar elementos (labels).
+> Aciona o serviço Amazon Rekognition para processar a imagem e identificar elementos (labels).
 
-Conecta-se aos bancos Amazon DynamoDB e Amazon RDS para armazenar os resultados.
+> Conecta-se aos bancos Amazon DynamoDB e Amazon RDS para armazenar os resultados.
 
-Retorna as labels geradas ao frontend para exibição.
+> Retorna as labels geradas ao frontend para exibição.
 
 Amazon S3
 
-Armazena as imagens recebidas para análise e histórico.
+> Armazena as imagens recebidas para análise e histórico.
 
 Amazon Rekognition
 
-Realiza a detecção de objetos, cenas e conceitos presentes na imagem, retornando os resultados em forma de labels.
+> Realiza a detecção de objetos, cenas e conceitos presentes na imagem, retornando os resultados em forma de labels.
 
 Armazenamento de Dados
 
-Amazon DynamoDB: Armazena os metadados e resultados de forma rápida e escalável.
+> Amazon DynamoDB: Armazena os metadados e resultados de forma rápida e escalável.
 
-Amazon RDS: Utilizado como repositório relacional para persistência adicional e integração com outras ferramentas analíticas.
+> Amazon RDS: Utilizado como repositório relacional para persistência adicional e integração com outras ferramentas analíticas.
 
 Monitoramento e Notificações
 
-Amazon CloudWatch: Monitora métricas das instâncias EC2 e funções Lambda.
+> Amazon CloudWatch: Monitora métricas das instâncias EC2 e funções Lambda.
 
-Amazon SNS: Utilizado para envio de notificações sobre eventos relevantes do sistema.
+> Amazon SNS: Utilizado para envio de notificações sobre eventos relevantes do sistema.
 
 📌 Observações Técnicas
-A conversão para Base64 permite compatibilidade com o API Gateway, apesar do aumento no tamanho da carga útil.
+> A conversão para Base64 permite compatibilidade com o API Gateway, apesar do aumento no tamanho da carga útil.
 
-A arquitetura é desacoplada e orientada a eventos, com foco em serverless para reduzir custos e aumentar a escalabilidade.
+> A arquitetura é desacoplada e orientada a eventos, com foco em serverless para reduzir custos e aumentar a escalabilidade.
 
-O uso conjunto de bancos NoSQL (DynamoDB) e relacional (RDS) permite flexibilidade e robustez na manipulação dos dados.
+> O uso conjunto de bancos NoSQL (DynamoDB) e relacional (RDS) permite flexibilidade e robustez na manipulação dos dados.
 
 # ⚡ Função Lambda
 ```python
